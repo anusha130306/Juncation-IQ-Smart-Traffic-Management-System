@@ -102,7 +102,7 @@ HORN_OF_VEHICLE = {
 # xxxxxxxxxxxxxx Emergency Vehicle Settings xxxxxxxxxxxxx
 AMBULANCE_ON =True
 FIRETRUCK_ON =True
-AMBULANCE_PAIR_CHANCE = 0.5 # 0.0 = never together, 1.0 = always one pair
+AMBULANCE_PAIR_CHANCE = 0.0 # 0.0 = never together, 1.0 = always one pair
 AMBULANCE_START_FRACTION = 0.10
 AMBULANCE_END_FRACTION = 0.90
 EMERGENCY_PREFIXES = ("ambulance_", "firetruck_") # E.V.Id's
@@ -127,6 +127,17 @@ def add_emergency_vehicles(vehicle_list):
     if not fleet:
         return
     random.shuffle(fleet)
+
+# def add_emergency_vehicles(vehicle_list):
+#     """Add at most one ambulance and at most one fire truck per simulation."""
+#     fleet = []
+#     if AMBULANCE_ON:
+#         fleet.append(("ambulance", random.choice(INCOMING_EDGES)))
+#     if FIRETRUCK_ON:
+#         fleet.append(("firetruck", random.choice(INCOMING_EDGES)))
+#     if not fleet:
+#         return
+#     random.shuffle(fleet)
 
     groups = [[vehicle] for vehicle in fleet]
     if len(groups) >= 2 and random.random() < AMBULANCE_PAIR_CHANCE:
@@ -185,7 +196,7 @@ def create_random_traffic():
     tree = ET.ElementTree(routes)
     ET.indent(tree, space="    ")
     tree.write(ROUTE_FILE, encoding="UTF-8", xml_declaration=True)
-    emergency_count = (4 if AMBULANCE_ON else 0) + (4 if FIRETRUCK_ON else 0)
+    emergency_count = (1 if AMBULANCE_ON else 0) + (1 if FIRETRUCK_ON else 0)
     print(f"Created {NUMBER_OF_VEHICLES} vehicles + {emergency_count} emergency vehicles")
     print(f"Route file: {ROUTE_FILE}")
 

@@ -1,4 +1,5 @@
 # BASELINE: static signals (fixed 30 s timer, one lane after another, no emergency priority)
+# Emergency vehicles only make the red signals BLINK - they get no priority.
 import math
 import os
 import random
@@ -32,6 +33,7 @@ TEXT_DISTANCE = 4.5
 PANEL_WIDTH, PANEL_HEIGHT = 17.0, 9.0
 CIRCLE_RADIUS = 1.6
 COLOUR_RED = (220, 30, 30, 255)
+COLOUR_RED_DIM = (90, 0, 0, 255)   # red circle when it is "off" during blinking
 COLOUR_GREEN = (0, 200, 0, 255)
 COLOUR_YELLOW = (255, 200, 0, 255)
 COLOUR_PANEL = (0, 0, 0, 255)
@@ -51,6 +53,9 @@ VEHICLE_TYPES = [("car", 55), ("motorcycle", 25), ("truck", 10), ("bus", 5), ("v
 AMBULANCE_PAIR_CHANCE = 0.5
 AMBULANCE_START_FRACTION = 0.10
 AMBULANCE_END_FRACTION = 0.90
+EMERGENCY_PREFIXES = ("ambulance_", "firetruck_")
+EMERGENCY_DETECTION_DISTANCE = 100.0   # metres from the stop line at which an emergency vehicle is noticed
+BLINK_SECONDS = 0.5                    # red circles blink on/off every 0.5 s while an emergency vehicle is near
 
 # Sound (needs: pip install pygame)
 SOUND_ON = True
@@ -144,6 +149,7 @@ class SignalController:
         self.labels = self._create_labels()
         self.shown = {}
         self.lane = 0
+        self.in_junction = set()   # emergency vehicles currently crossing the junction
         self._start_green(0, traci.simulation.getTime())
 
     def _find_traffic_light(self):
@@ -175,6 +181,29 @@ class SignalController:
             labels[edge] = (f"timer_{edge}", f"circle_{edge}")
         return labels
 
+    def _emergency_nearby(self):
+        """True while an emergency vehicle is within range of the stop line or inside the junction.
+        This only drives the blinking red display - the fixed timing is NOT changed."""
+        found = False
+        present = set()
+        for vehicle_id in traci.vehicle.getIDList():
+            if not vehicle_id.startswith(EMERGENCY_PREFIXES):
+                continue
+            present.add(vehicle_id)
+            road = traci.vehicle.getRoadID(vehicle_id)
+            if road in INCOMING_EDGES:
+                lane_id = traci.vehicle.getLaneID(vehicle_id)
+                distance = traci.lane.getLength(lane_id) - traci.vehicle.getLanePosition(vehicle_id)
+                if distance <= EMERGENCY_DETECTION_DISTANCE:
+                    self.in_junction.add(vehicle_id)
+                    found = True
+            elif road.startswith(":") and vehicle_id in self.in_junction:
+                found = True                      # still crossing the junction
+            else:
+                self.in_junction.discard(vehicle_id)   # it has passed
+        self.in_junction &= present
+        return found
+
     def _show_lane_colour(self, colour):
         state = ["r"] * self.signal_count
         for i in self.signals_of_lane[INCOMING_EDGES[self.lane]]:
@@ -198,6 +227,8 @@ class SignalController:
                 traci.trafficlight.setRedYellowGreenState(self.light_id, "r" * self.signal_count)
             else:
                 self._start_green((self.lane + 1) % len(INCOMING_EDGES), now)
+        emergency = self._emergency_nearby()
+        blink_on = int(now / BLINK_SECONDS) % 2 == 0
         for i, edge in enumerate(INCOMING_EDGES):
             timer_id, circle_id = self.labels[edge]
             if i != self.lane:
@@ -207,6 +238,9 @@ class SignalController:
             else:
                 text = f"TIMER : {max(0, math.ceil(self.timer_end - now - 1e-9))}"
                 colour = COLOUR_GREEN if self.phase == "GREEN" else COLOUR_YELLOW
+            # Emergency vehicle nearby: every red circle blinks (signal timing stays fixed)
+            if emergency and colour == COLOUR_RED and not blink_on:
+                colour = COLOUR_RED_DIM
             if self.shown.get(timer_id) != text:
                 traci.poi.setType(timer_id, text)
                 self.shown[timer_id] = text

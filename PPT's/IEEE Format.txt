@@ -1,0 +1,32 @@
+paper 1 : T. A. Mahmood and M. E. M. Ali, “Adaptive Traffic Signaling Control Using SUMO Simulator,” *International Journal of Innovative Science and Research Technology*, vol. 10, no. 1, Jan. 2025, doi: 10.5281/zenodo.14621424.
+
+
+ Research Paper 2
+S. Akhter, M. N. Ahsan, S. J. S. Quaderi, M. A. A. Forhad, S. H. Sumit, and M. R. Rahman, “A SUMO Based Simulation Framework for Intelligent Traffic Management System,” Journal of Traffic and Logistics Engineering, vol. 8, no. 1, pp. 1–5, Jun. 2020, doi: 10.18178/jtle.8.1.1-5.
+
+
+ Research Paper 3
+A. Tambe and K. Uke, “AI-Powered Traffic Signal Control: A Deep Reinforcement Learning Framework for Urban Congestion Reduction,” International Journal of Environmental Sciences, vol. 11, no. 22s, pp. 4669–4676, 2025.
+
+
+ Research Paper 4
+S. Das, S. Chakravarty, S. Dash, and R. Nanda, “Enhancing Traffic Monitoring Systems through Image Analysis and Rule-Based Machine Learning,” Procedia Computer Science, vol. 258, pp. 2119–2129, 2025, doi: 10.1016/j.procs.2025.04.462.
+
+Research Paper 5
+
+S. Spreeuwenberg and R. Krikke, “Development of the rule based approach to traffic management by the Dutch road authorities,” in Proc. RuleML+RR 2017, CEUR Workshop Proceedings, vol. 1875, 2017.
+
+Research Paper 6
+N. R. Dyavani and K. M., “Rule-based dynamic traffic management for emergency vehicle routing: A smart infrastructure approach,” International Journal of Engineering Technology Research & Management, vol. 3, no. 6, Jun. 2019.
+
+Research Paper 7
+A. Adnane and Y. Harkat, “Dynamic emergency vehicle prioritization in a connected urban environment: A rule-based approach,” in Emerging Cutting-Edge Applied Research and Development in Intelligent Traffic and Transportation Systems, M. Shafik, Ed. IOS Press, 2024, pp. 380–391, doi: 10.3233/ATDE241212.
+
+Research Paper 8
+H. Maheshwari, L. Yang, and R. W. Pazzi, “Traffic intersection simulation using turning movement count data in SUMO: A case study of Toronto intersections,” arXiv preprint arXiv:2508.10733, 2025, doi: 10.48550/arXiv.2508.10733.
+
+Research Paper 9
+D. Koltovska Nechoska, R. Petrevska Nechkoska, R. Duma, and M. Jovanovska Bogdanoska, “AI-based traffic control and management systems—a synthesis of Macedonian research experiences,” Transportation Research Procedia, vol. 83, pp. 513–519, 2025, doi: 10.1016/j.trpro.2025.03.020.
+
+Research Paper 10
+Y. H. Chow, K. J. A. Ooi, M. A. S. Bhuiyan, M. B. I. Reaz, and C. W. Yuen, “Computation and optimization of traffic network topologies using Eclipse SUMO,” Annals of Emerging Technologies in Computing, vol. 6, no. 4, pp. 31–37, Oct. 2022, doi: 10.33166/AETiC.2022.04.004.

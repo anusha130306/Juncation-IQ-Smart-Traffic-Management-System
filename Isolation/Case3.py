@@ -111,7 +111,7 @@ AMBULANCE_DETECTION_DISTANCE = 100.0 #Upto 100m the E.V. detected
 BLINK_SECONDS =0.5
 RANDOM_SEED  = 42                                      # same traffic every run, so results are comparable
 EDGE_WEIGHTS = {"E2": 1, "E4": 1, "E6": 1, "E8": 1}    # 0 = no vehicle starts on that road
-EV_PLAN      = [("ambulance", "E2", 25), ("firetruck", "E6", 50)]                                      # [(type, road, depart_time_s), ...]
+EV_PLAN      = [("ambulance", "E2", 25), ("firetruck", "E6", 25)]                                      # [(type, road, depart_time_s), ...]
 TRIGGER_EV   = None                                    # only used in conditions 6 and 7
 
 # xxxxxxxxxxxxxxx Create Random Traffic xxxxxxxxxxxxxxx

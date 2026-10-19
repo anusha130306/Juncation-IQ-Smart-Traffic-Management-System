@@ -62,13 +62,13 @@ VEHICLE_TYPES = [
 SECONDS_PER_VEHICLE = {
     "motorcycle": 0.5,
     "car": 1.0,
-    "van": 1.5,
-    "bus": 2.0,
-    "truck": 3.0,
-    "ambulance": 1.5,
-    "firetruck": 1.5,
+    "van": 1.4,
+    "bus": 2.2,
+    "truck": 2.2,
+    "ambulance": 1.0,
+    "firetruck": 2.2,
 }
- 
+
 DEFAULT_SECONDS_PER_VEHICLE = 1.0
 DETECTION_DISTANCE = 80.0  # Upto 80m from junction vehicle will be counted
 MIN_TIMER = 10

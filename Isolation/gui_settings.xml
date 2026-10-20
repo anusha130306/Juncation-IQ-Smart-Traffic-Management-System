@@ -1,8 +1,8 @@
 <viewsettings>
     <!-- Label text style: white text, transparent background -->
     <scheme name="real world">
-        <pois poiType_show="1" poiType_size="90" poiType_color="255,255,255"
-              poiType_bgColor="0,0,0,0" poiType_constantSize="1"
+        <pois poiType_show="1" poiType_size="30" poiType_color="255,255,255"
+              poiType_bgColor="0,0,0,0" poiType_constantSize="0"
               poiName_show="0" poiText_show="0"/>
     </scheme>
  

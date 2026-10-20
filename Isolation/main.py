@@ -27,10 +27,11 @@ USE_GUI = os.environ.get("USE_GUI", "1") == "1"
 # xxxxxxxxxxxx Default GUI Settings xxxxxxxxxxxx
 # For lables
 TEXT_DISTANCE = 4.0
-PANEL_WIDTH = 17.0
-PANEL_HEIGHT = 14.0
+PANEL_WIDTH = 22.0
+PANEL_HEIGHT = 16.0
 CIRCLE_RADIUS = 1.6
 HALO_RADIUS = 2.6
+
 # COLOURS
 COLOUR_RED = (220, 30, 30, 255)
 COLOUR_RED_DIM = (90, 0, 0, 255)  # Blinking
@@ -74,7 +75,7 @@ DETECTION_DISTANCE = 80.0  # Upto 80m from junction vehicle will be counted
 MIN_TIMER = 10
 MAX_TIMER = 40
 YELLOW_TIME = 3
-ALL_RED_TIME = 2
+ALL_RED_TIME = 0
 RESUME_IF_GREEN_SECONDS = 10  # This is for E.V. crossing
 assert MIN_TIMER > YELLOW_TIME
  
@@ -123,8 +124,22 @@ def pick_random_vehicle_type():
     for vehicle_type, chance in VEHICLE_TYPES:
         weighted_list.extend([vehicle_type] * chance)
     return random.choice(weighted_list)
- 
- 
+
+
+def is_left_turn_route(vehicle_id):
+    route = traci.vehicle.getRoute(vehicle_id)
+
+    left_turns = {
+        # Replace with verified left-turn edge pairs
+        ("E2", "E3"),
+    }
+
+    return any(
+        (route[i], route[i + 1]) in left_turns
+        for i in range(len(route) - 1)
+    )
+
+
 def add_emergency_vehicles(vehicle_list):
     """Adds one ambulance and one fire truck per incoming edge.
     Returns how many emergency vehicles were added."""
@@ -165,11 +180,11 @@ def add_emergency_vehicles(vehicle_list):
 def create_random_traffic():
     print("Creating traffic...")
     routes = ET.Element("routes")
-    ET.SubElement(routes, "vType", id="car", vClass="passenger", accel="2.6", decel="4.5", sigma="0.5", length="4.5", minGap="2.5", maxSpeed="13.89")
-    ET.SubElement(routes, "vType", id="motorcycle", vClass="motorcycle", accel="3.0", decel="5.0", sigma="0.5", length="2.5", minGap="1.0", maxSpeed="16.67")
-    ET.SubElement(routes, "vType", id="truck", vClass="truck", accel="1.0", decel="3.5", sigma="0.5", length="10.0", minGap="3.0", maxSpeed="11.11")
-    ET.SubElement(routes, "vType", id="bus", vClass="bus", accel="1.2", decel="4.0", sigma="0.5", length="12.0", minGap="3.0", maxSpeed="12.5")
-    ET.SubElement(routes, "vType", id="van", vClass="delivery", accel="2.0", decel="4.0", sigma="0.5", length="5.5", minGap="2.5", maxSpeed="13.89")
+    ET.SubElement(routes, "vType", id="car", vClass="passenger",guiShape="passenger", accel="2.6", decel="4.5", sigma="0.5", length="4.5", minGap="2.5", maxSpeed="13.89")
+    ET.SubElement(routes, "vType", id="motorcycle", vClass="motorcycle",guiShape="motorcycle", accel="3.0", decel="5.0", sigma="0.5", length="2.5", minGap="1.0", maxSpeed="16.67")
+    ET.SubElement(routes, "vType", id="truck", vClass="truck",guiShape="truck", accel="1.0", decel="3.5", sigma="0.5", length="10.0", minGap="3.0", maxSpeed="11.11")
+    ET.SubElement(routes, "vType", id="bus", vClass="bus", guiShape="bus",accel="1.2", decel="4.0", sigma="0.5", length="12.0", minGap="3.0", maxSpeed="12.5")
+    ET.SubElement(routes, "vType", id="van", vClass="delivery",guiShape="delivery", accel="2.0", decel="4.0", sigma="0.5", length="5.5", minGap="2.5", maxSpeed="13.89")
     ET.SubElement(routes, "vType", id="ambulance", vClass="emergency", guiShape="emergency", accel="5.0", decel="5.0", sigma="0.3", length="6.0", minGap="2.0", maxSpeed="20.67", color="255,255,255")
     ET.SubElement(routes, "vType", id="firetruck", vClass="emergency", guiShape="firebrigade", accel="4.5", decel="4.5", sigma="0.3", length="9.0", minGap="2.5", maxSpeed="20.0", color="220,0,0")
  
@@ -209,8 +224,8 @@ def write_gui_settings():
     xml = f'''<viewsettings>
     <!-- Label text style: white text, transparent background -->
     <scheme name="real world">
-        <pois poiType_show="1" poiType_size="90" poiType_color="255,255,255"
-              poiType_bgColor="0,0,0,0" poiType_constantSize="1"
+        <pois poiType_show="1" poiType_size="30" poiType_color="255,255,255"
+              poiType_bgColor="0,0,0,0" poiType_constantSize="0"
               poiName_show="0" poiText_show="0"/>
     </scheme>
  
@@ -259,7 +274,9 @@ class SignalController:
     GREEN, YELLOW, ALL_RED = "GREEN", "YELLOW", "ALL_RED"
  
     def __init__(self):
+        
         self.light_id, self.signals_of_lane, self.signal_count = self._find_traffic_light()
+        self.left_turn_links = self._find_left_turn_links()
         self.label_ids = self._create_labels()
         self._last_shown = {}            # what each label shows now
         self.current_lane = 0            # position in INCOMING_EDGES (0 = Lane 1)
@@ -295,14 +312,27 @@ class SignalController:
             ". Open the network in netedit and set the junction type to "
             "'traffic_light'."
         )
- 
+
+
     def _label_position(self, edge_id):
         shape = traci.lane.getShape(edge_id + "_0")
         (x1, y1), (x2, y2) = shape[-2], shape[-1]
         length = math.hypot(x2 - x1, y2 - y1) or 1.0
         dx, dy = (x2 - x1) / length, (y2 - y1) / length
-        return x2 - dx * 12 - dy * 15, y2 - dy * 12 + dx * 15  # 12m back and 15m from lane
- 
+        # Individual label offsets: (back from junction, sideways)
+        LABEL_OFFSETS = {
+            "E2": (8, 18),
+            "E4": (8, 18),
+            "E6": (10, 18),
+            "E8": (12, 20),
+        }
+        back, side = LABEL_OFFSETS.get(edge_id, (12, 22))
+        return (
+            x2 - dx * back - dy * side,
+            y2 - dy * back + dx * side
+        )
+
+
     def _rectangle_shape(self, x, y):
         w, h = PANEL_WIDTH / 2, PANEL_HEIGHT / 2
         return [(x - w, y - h), (x + w, y - h), (x + w, y + h), (x - w, y + h)]
@@ -316,6 +346,7 @@ class SignalController:
         return points
  
     def _create_labels(self):
+        COLOUR_TRANSPARENT=(0,0,0,0)
         label_ids = {}
         for edge in INCOMING_EDGES:
             x, y = self._label_position(edge)
@@ -324,17 +355,67 @@ class SignalController:
             traci.polygon.add(panel_id, self._rectangle_shape(x, y), COLOUR_PANEL, fill=True, layer=240)  # Black panel
             traci.polygon.add(halo_id, self._circle_shape(x, y, HALO_RADIUS), COLOUR_PANEL, fill=True, layer=243)  # Halo circle
             traci.polygon.add(circle_id, self._circle_shape(x, y), COLOUR_RED, fill=True, layer=245)  # Circle
-            traci.poi.add(count_id, x, y + TEXT_DISTANCE, COLOUR_TEXT, poiType="", layer=250, width=0.5, height=0.5)  # count
-            traci.poi.add(timer_id, x, y - TEXT_DISTANCE, COLOUR_TEXT, poiType="", layer=250, width=0.5, height=0.5)  # timer
+            traci.poi.add(count_id, x, y + TEXT_DISTANCE, COLOUR_TRANSPARENT, poiType="", layer=250, width=0.5, height=0.5)  # count
+            traci.poi.add(timer_id, x, y - TEXT_DISTANCE, COLOUR_TRANSPARENT, poiType="", layer=250, width=0.5, height=0.5)  # timer
             label_ids[edge] = (count_id, timer_id, circle_id, halo_id)  # entire label
         return label_ids
+
+    
+    def _find_left_turn_links(self):
+        """Find traffic-light link indices for left turns
+        using the SUMO network connection definitions."""
+        config_tree = ET.parse(SUMO_CONFIG)
+        net_element = config_tree.find(".//input/net-file")
+
+        if net_element is None:
+            raise RuntimeError(
+                "No net-file found in Visuals.sumocfg"
+            )
+
+        net_path = net_element.get("value")
+        if not os.path.isabs(net_path):
+            net_path = os.path.join(
+                os.path.dirname(SUMO_CONFIG), net_path
+            )
+
+        net_tree = ET.parse(net_path)
+        left_links = set()
+
+        for connection in net_tree.getroot().findall("connection"):
+            if connection.get("tl") != self.light_id:
+                continue
+
+            if connection.get("dir") == "l":
+                index = connection.get("linkIndex")
+                if index is not None:
+                    left_links.add(int(index))
+
+        print("Left-turn signal indices:", sorted(left_links))
+        return left_links
+
  
     # ---------- light colour helpers ----------
+
     def _show_lane_colour(self, lane_index, colour):
         state = ["r"] * self.signal_count
-        for i in self.signals_of_lane[INCOMING_EDGES[lane_index]]:
+
+        # Give the selected incoming road its normal signal.
+        for i in self.signals_of_lane[
+            INCOMING_EDGES[lane_index]
+        ]:
             state[i] = colour
-        traci.trafficlight.setRedYellowGreenState(self.light_id, "".join(state))
+
+        # During a green phase, allow other left-turn movements
+        # to proceed permissively, yielding to conflicting traffic.
+        if colour == "G":
+            for i in self.left_turn_links:
+                if state[i] == "r":
+                    state[i] = "g"
+
+        traci.trafficlight.setRedYellowGreenState(
+            self.light_id, "".join(state)
+        )
+
  
     def _show_all_red(self):
         traci.trafficlight.setRedYellowGreenState(self.light_id, "r" * self.signal_count)
@@ -379,7 +460,7 @@ class SignalController:
             self._show_lane_colour(self.current_lane, "y")
         elif self.phase == self.YELLOW:           # timer reached 0
             self.phase = self.ALL_RED
-            self.phase_end_time = now + ALL_RED_TIME
+            self.phase_end_time = now
             self._show_all_red()
         else:
             self._start_green(self.pending_lane, now)
@@ -661,10 +742,17 @@ def run_simulation():
     sound = TrafficSound()
     try:
         controller = SignalController()
+        
         while traci.simulation.getMinExpectedNumber() > 0:
             traci.simulationStep()
+
+            for vehicle_id in traci.vehicle.getIDList():
+                if is_left_turn_route(vehicle_id):
+                    pass  # Detection only; does not ignore red
+
             controller.update()
             sound.update()
+
     except RuntimeError as e:
         print("Error: ", e)
     finally:
@@ -675,5 +763,3 @@ def run_simulation():
  
 if __name__ == "__main__":
     run_simulation()
- 
-Claude is responding

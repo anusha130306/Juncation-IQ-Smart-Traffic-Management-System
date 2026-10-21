@@ -204,8 +204,10 @@ def create_random_traffic():
         ET.SubElement(
             routes, "vehicle",
             id=vehicle_id, type=vehicle_type, route=route_id,
-            depart=f"{start_time:.2f}", departLane="random",
-            departSpeed="random", color=colour,
+            depart=f"{start_time:.2f}", 
+            departLane="random",
+            departSpeed="random", 
+            color=colour,
         )
     tree = ET.ElementTree(routes)
     ET.indent(tree, space="    ")
@@ -331,7 +333,6 @@ class SignalController:
             y2 - dy * back + dx * side
         )
 
-
     def _rectangle_shape(self, x, y):
         w, h = PANEL_WIDTH / 2, PANEL_HEIGHT / 2
         return [(x - w, y - h), (x + w, y - h), (x + w, y + h), (x - w, y + h)]
@@ -396,7 +397,7 @@ class SignalController:
 
     def _apply_left_turn_green(self, state):
         for i in self.left_turn_links:
-            state[i] = "g"          # permissive green: left turn yields to conflicting traffic
+            state[i] = "g" # permissive green: left turn yields to conflicting traffic
         return state
 
     def _show_lane_colour(self, lane_index, colour):
@@ -405,9 +406,13 @@ class SignalController:
         for i in self.signals_of_lane[INCOMING_EDGES[lane_index]]:
             state[i] = colour
 
-        # Left turns are ALWAYS green (green, yellow, emergency)
+        # Left turns are ALWAYS green (green, yellow, all-red, emergency)
         state = self._apply_left_turn_green(state)
 
+        traci.trafficlight.setRedYellowGreenState(self.light_id, "".join(state))
+
+    def _show_all_red(self):
+        state = self._apply_left_turn_green(["r"] * self.signal_count)
         traci.trafficlight.setRedYellowGreenState(self.light_id, "".join(state))
  
     # ---------- normal cycle ----------

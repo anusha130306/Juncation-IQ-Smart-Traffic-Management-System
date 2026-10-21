@@ -1,1 +1,3 @@
-ALL_RED
+n(state))
+
+    def _show_all_red(self):

@@ -13,6 +13,10 @@
     <viewport x="0" y="0" zoom="150" angle="0"/>
 
     <!-- Background aerial image -->
+<<<<<<< HEAD
     <decal file="d:\mp3\Smart-Traffic-Management-System-Mini-Project-3\Isolation\IsolationArielImage.png" centerX="0" centerY="0"
+=======
+    <decal file="d:\Vinu\3rd Year\Mini Project 3\Traffic-Management\Isolation\IsolationArielImage.png" centerX="0" centerY="0"
+>>>>>>> 4dc34bca9e3da6fd05c414e3a16b86717fdf7cc9
            width="210.12" height="189.22" rotation="0" layer="-1"/>
 </viewsettings>

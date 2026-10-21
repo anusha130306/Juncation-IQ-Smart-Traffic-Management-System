@@ -75,7 +75,6 @@ DETECTION_DISTANCE = 80.0  # Upto 80m from junction vehicle will be counted
 MIN_TIMER = 10
 MAX_TIMER = 40
 YELLOW_TIME = 3
-ALL_RED_TIME = 0
 RESUME_IF_GREEN_SECONDS = 10  # This is for E.V. crossing
 assert MIN_TIMER > YELLOW_TIME
  
@@ -180,11 +179,11 @@ def add_emergency_vehicles(vehicle_list):
 def create_random_traffic():
     print("Creating traffic...")
     routes = ET.Element("routes")
-    ET.SubElement(routes, "vType", id="car", vClass="passenger",guiShape="passenger", accel="2.6", decel="4.5", sigma="0.5", length="4.5", minGap="2.5", maxSpeed="13.89")
-    ET.SubElement(routes, "vType", id="motorcycle", vClass="motorcycle",guiShape="motorcycle", accel="3.0", decel="5.0", sigma="0.5", length="2.5", minGap="1.0", maxSpeed="16.67")
-    ET.SubElement(routes, "vType", id="truck", vClass="truck",guiShape="truck", accel="1.0", decel="3.5", sigma="0.5", length="10.0", minGap="3.0", maxSpeed="11.11")
-    ET.SubElement(routes, "vType", id="bus", vClass="bus", guiShape="bus",accel="1.2", decel="4.0", sigma="0.5", length="12.0", minGap="3.0", maxSpeed="12.5")
-    ET.SubElement(routes, "vType", id="van", vClass="delivery",guiShape="delivery", accel="2.0", decel="4.0", sigma="0.5", length="5.5", minGap="2.5", maxSpeed="13.89")
+    ET.SubElement(routes, "vType", id="car", vClass="passenger", guiShape="passenger", accel="2.6", decel="4.5", sigma="0.5", length="4.5", minGap="2.5", maxSpeed="13.89")
+    ET.SubElement(routes, "vType", id="motorcycle", vClass="motorcycle", guiShape="motorcycle", accel="3.0", decel="5.0", sigma="0.5", length="2.5", minGap="1.0", maxSpeed="16.67")
+    ET.SubElement(routes, "vType", id="truck", vClass="truck", guiShape="truck", accel="1.0", decel="3.5", sigma="0.5", length="10.0", minGap="3.0", maxSpeed="11.11")
+    ET.SubElement(routes, "vType", id="bus", vClass="bus", guiShape="bus", accel="1.2", decel="4.0", sigma="0.5", length="12.0", minGap="3.0", maxSpeed="12.5")
+    ET.SubElement(routes, "vType", id="van", vClass="delivery", guiShape="delivery", accel="2.0", decel="4.0", sigma="0.5", length="5.5", minGap="2.5", maxSpeed="13.89")
     ET.SubElement(routes, "vType", id="ambulance", vClass="emergency", guiShape="emergency", accel="5.0", decel="5.0", sigma="0.3", length="6.0", minGap="2.0", maxSpeed="20.67", color="255,255,255")
     ET.SubElement(routes, "vType", id="firetruck", vClass="emergency", guiShape="firebrigade", accel="4.5", decel="4.5", sigma="0.3", length="9.0", minGap="2.5", maxSpeed="20.0", color="220,0,0")
  
@@ -273,7 +272,7 @@ def calculate_timer(demand_seconds):
 # xxxxxxxxxxxxxx Main If - else rules Controller xxxxxxxxxxxxxx
  
 class SignalController:
-    GREEN, YELLOW, ALL_RED = "GREEN", "YELLOW", "ALL_RED"
+    GREEN, YELLOW = "GREEN", "YELLOW"
  
     def __init__(self):
         
@@ -282,11 +281,11 @@ class SignalController:
         self.label_ids = self._create_labels()
         self._last_shown = {}            # what each label shows now
         self.current_lane = 0            # position in INCOMING_EDGES (0 = Lane 1)
-        self.phase = None                # GREEN, YELLOW or ALL_RED
+        self.phase = None                # GREEN or YELLOW
         self.phase_end_time = 0.0        # when the current colour ends
         self.timer_end_time = 0.0        # when the timer reaches 0
         self.green_start_time = 0.0      # when the current green started
-        self.pending_lane = 0            # lane that gets green after the next all-red
+        self.pending_lane = 0            # lane that gets green after the current yellow
         self.fixed_timer = 0             # timer chosen at the start (does not change)
         self.fixed_count = 0             # vehicle count at the start (does not change)
         self.fixed_demand = 0.0
@@ -347,7 +346,7 @@ class SignalController:
         return points
  
     def _create_labels(self):
-        COLOUR_TRANSPARENT=(0,0,0,0)
+        COLOUR_TRANSPARENT = (0, 0, 0, 0)
         label_ids = {}
         for edge in INCOMING_EDGES:
             x, y = self._label_position(edge)
@@ -393,13 +392,16 @@ class SignalController:
 
         print("Left-turn signal indices:", sorted(left_links))
         return left_links
-
- 
+    
     # ---------- light colour helpers ----------
 
     def _apply_left_turn_green(self, state):
         for i in self.left_turn_links:
+<<<<<<< HEAD
             state[i] = "g" # permissive green: left turn yields to conflicting traffic
+=======
+            state[i] = "g"          # permissive green: left turn yields to conflicting traffic
+>>>>>>> b0d4b2af804117e950c0e948eaba3bf720530a84
         return state
 
     def _show_lane_colour(self, lane_index, colour):
@@ -408,6 +410,7 @@ class SignalController:
         for i in self.signals_of_lane[INCOMING_EDGES[lane_index]]:
             state[i] = colour
 
+<<<<<<< HEAD
         # Left turns are ALWAYS green (green, yellow, all-red, emergency)
         state = self._apply_left_turn_green(state)
 
@@ -416,6 +419,12 @@ class SignalController:
     def _show_all_red(self):
         state = self._apply_left_turn_green(["r"] * self.signal_count)
         traci.trafficlight.setRedYellowGreenState(self.light_id, "".join(state))
+=======
+        # Left turns are ALWAYS green (green, yellow, emergency)
+        state = self._apply_left_turn_green(state)
+
+        traci.trafficlight.setRedYellowGreenState(self.light_id, "".join(state))
+>>>>>>> b0d4b2af804117e950c0e948eaba3bf720530a84
  
     # ---------- normal cycle ----------
     def _start_green(self, first_lane, now):
@@ -455,11 +464,7 @@ class SignalController:
             self.phase = self.YELLOW
             self.phase_end_time = self.timer_end_time   # yellow lasts until timer = 0
             self._show_lane_colour(self.current_lane, "y")
-        elif self.phase == self.YELLOW:           # timer reached 0
-            self.phase = self.ALL_RED
-            self.phase_end_time = now
-            self._show_all_red()
-        else:
+        else:                                     # yellow finished (timer reached 0)
             self._start_green(self.pending_lane, now)
  
     # ---------- emergency (ambulance / fire truck) mode ----------
@@ -538,7 +543,7 @@ class SignalController:
         n = len(INCOMING_EDGES)
         if self.pending_lane == lane:
             self.pending_lane = (lane + 1) % n
-        print(f"[t={now:6.1f}s] Emergency vehicle passed Lane {lane + 1} -> YELLOW, then red, "
+        print(f"[t={now:6.1f}s] Emergency vehicle passed Lane {lane + 1} -> YELLOW, "
               f"then Lane {self.pending_lane + 1} continues the cycle")
         self.emergency_active = False
         self.emergency_lane = None
@@ -587,12 +592,9 @@ class SignalController:
             count_id, timer_id, circle_id, halo_id = self.label_ids[edge]
             if i == self.current_lane:
                 count = self.fixed_count
-                if self.phase == self.ALL_RED:
-                    timer_text, circle_colour = "TIMER : 0", COLOUR_RED
-                else:
-                    seconds_left = max(0, math.ceil(self.timer_end_time - now - 1e-9))
-                    timer_text = f"TIMER : {seconds_left}"    # one countdown for green + yellow
-                    circle_colour = COLOUR_GREEN if self.phase == self.GREEN else COLOUR_YELLOW
+                seconds_left = max(0, math.ceil(self.timer_end_time - now - 1e-9))
+                timer_text = f"TIMER : {seconds_left}"    # one countdown for green + yellow
+                circle_colour = COLOUR_GREEN if self.phase == self.GREEN else COLOUR_YELLOW
             else:
                 count, _demand, _ = count_vehicles_in_lane(edge)
                 timer_text = "TIMER : 0" if count == 0 else "TIMER : --"

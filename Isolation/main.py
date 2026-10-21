@@ -397,11 +397,7 @@ class SignalController:
 
     def _apply_left_turn_green(self, state):
         for i in self.left_turn_links:
-<<<<<<< HEAD
-            state[i] = "g"          # permissive green: left turn yields to conflicting traffic
-=======
             state[i] = "g" # permissive green: left turn yields to conflicting traffic
->>>>>>> 4dc34bca9e3da6fd05c414e3a16b86717fdf7cc9
         return state
 
     def _show_lane_colour(self, lane_index, colour):
@@ -410,12 +406,6 @@ class SignalController:
         for i in self.signals_of_lane[INCOMING_EDGES[lane_index]]:
             state[i] = colour
 
-<<<<<<< HEAD
-        # Left turns are ALWAYS green (green, yellow, emergency)
-        state = self._apply_left_turn_green(state)
-
-        traci.trafficlight.setRedYellowGreenState(self.light_id, "".join(state))
-=======
         # Left turns are ALWAYS green (green, yellow, all-red, emergency)
         state = self._apply_left_turn_green(state)
 
@@ -424,7 +414,6 @@ class SignalController:
     def _show_all_red(self):
         state = self._apply_left_turn_green(["r"] * self.signal_count)
         traci.trafficlight.setRedYellowGreenState(self.light_id, "".join(state))
->>>>>>> 4dc34bca9e3da6fd05c414e3a16b86717fdf7cc9
  
     # ---------- normal cycle ----------
     def _start_green(self, first_lane, now):

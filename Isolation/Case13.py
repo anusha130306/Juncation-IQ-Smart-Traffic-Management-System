@@ -699,9 +699,9 @@ VALID_ROUTES = {
 }
 # Vehicle type and its chance (in %)
 VEHICLE_TYPES = [
-    ("car", 25),
-    ("motorcycle", 10),
-    ("truck", 55),
+    ("car", 55),
+    ("motorcycle", 25),
+    ("truck",10),
     ("bus", 5),
     ("van", 5),
 ]

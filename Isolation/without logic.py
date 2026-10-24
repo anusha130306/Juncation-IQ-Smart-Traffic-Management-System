@@ -1,5 +1,3 @@
-# BASELINE: static signals (fixed 30 s timer, one lane after another, no emergency priority)
-# Emergency vehicles only make the red signals BLINK - they get no priority.
 import math
 import os
 import random
@@ -26,11 +24,11 @@ USE_GUI = os.environ.get("USE_GUI", "1") == "1"
 # Fixed signal timing
 FIXED_TIMER = 30               # seconds per lane (green + yellow)
 YELLOW_TIME = 3
-ALL_RED_TIME = 2
+ALL_RED_TIME = 0
 
 # Label look: black panel, light circle, timer text
-TEXT_DISTANCE = 4.5
-PANEL_WIDTH, PANEL_HEIGHT = 17.0, 9.0
+TEXT_DISTANCE = 4.0
+PANEL_WIDTH, PANEL_HEIGHT = 20.0, 16.0
 CIRCLE_RADIUS = 1.6
 COLOUR_RED = (220, 30, 30, 255)
 COLOUR_RED_DIM = (90, 0, 0, 255)   # red circle when it is "off" during blinking
@@ -128,8 +126,8 @@ def create_random_traffic():
 def write_gui_settings():
     xml = f'''<viewsettings>
     <scheme name="real world">
-        <pois poiType_show="1" poiType_size="90" poiType_color="255,255,255"
-              poiType_bgColor="0,0,0,0" poiType_constantSize="1"
+        <pois poiType_show="1" poiType_size="30" poiType_color="255,255,255"
+              poiType_bgColor="0,0,0,0" poiType_constantSize="0"
               poiName_show="0" poiText_show="0"/>
     </scheme>
     <delay value="{GUI_DELAY_MS}"/>
@@ -143,9 +141,11 @@ def write_gui_settings():
 
 # ------------------------------------------------------------------ fixed signal
 class SignalController:
-    """Lane 1 -> 2 -> 3 -> 4 -> 1 ... each: green, yellow (FIXED_TIMER total), then all-red."""
+    """Lane 1 -> 2 -> 3 -> 4 -> 1 ... each: green, yellow (FIXED_TIMER total), then all-red.
+    Left-turn links stay green in every phase."""
     def __init__(self):
         self.light_id, self.signals_of_lane, self.signal_count = self._find_traffic_light()
+        self.left_turn_links = self._find_left_turn_links()
         self.labels = self._create_labels()
         self.shown = {}
         self.lane = 0
@@ -164,7 +164,33 @@ class SignalController:
                 return light_id, signals, len(traci.trafficlight.getControlledLinks(light_id))
         raise RuntimeError("No traffic light controls edges " + ", ".join(INCOMING_EDGES))
 
+    def _find_left_turn_links(self):
+        """Find traffic-light link indices for left turns
+        using the SUMO network connection definitions."""
+        config_tree = ET.parse(SUMO_CONFIG)
+        net_element = config_tree.find(".//input/net-file")
+        if net_element is None:
+            raise RuntimeError("No net-file found in Visuals.sumocfg")
+
+        net_path = net_element.get("value")
+        if not os.path.isabs(net_path):
+            net_path = os.path.join(os.path.dirname(SUMO_CONFIG), net_path)
+
+        net_tree = ET.parse(net_path)
+        left_links = set()
+        for connection in net_tree.getroot().findall("connection"):
+            if connection.get("tl") != self.light_id:
+                continue
+            if connection.get("dir") == "l":
+                index = connection.get("linkIndex")
+                if index is not None:
+                    left_links.add(int(index))
+
+        print("Left-turn signal indices:", sorted(left_links))
+        return left_links
+
     def _create_labels(self):
+        
         labels = {}
         w, h = PANEL_WIDTH / 2, PANEL_HEIGHT / 2
         for edge in INCOMING_EDGES:
@@ -204,10 +230,22 @@ class SignalController:
         self.in_junction &= present
         return found
 
+    # ---------- light colour helpers ----------
+    def _apply_left_turn_green(self, state):
+        for i in self.left_turn_links:
+            state[i] = "g"   # permissive green: left turn yields to conflicting traffic
+        return state
+
     def _show_lane_colour(self, colour):
         state = ["r"] * self.signal_count
         for i in self.signals_of_lane[INCOMING_EDGES[self.lane]]:
             state[i] = colour
+        # Left turns are ALWAYS green (green, yellow, all-red)
+        state = self._apply_left_turn_green(state)
+        traci.trafficlight.setRedYellowGreenState(self.light_id, "".join(state))
+
+    def _show_all_red(self):
+        state = self._apply_left_turn_green(["r"] * self.signal_count)
         traci.trafficlight.setRedYellowGreenState(self.light_id, "".join(state))
 
     def _start_green(self, lane, now):
@@ -224,7 +262,7 @@ class SignalController:
                 self._show_lane_colour("y")
             elif self.phase == "YELLOW":
                 self.phase, self.phase_end = "ALL_RED", now + ALL_RED_TIME
-                traci.trafficlight.setRedYellowGreenState(self.light_id, "r" * self.signal_count)
+                self._show_all_red()
             else:
                 self._start_green((self.lane + 1) % len(INCOMING_EDGES), now)
         emergency = self._emergency_nearby()

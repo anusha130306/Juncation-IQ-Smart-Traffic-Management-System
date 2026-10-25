@@ -112,7 +112,7 @@ Each of the 25 cases was compared with a fixed-time cycle of **118 s**.
 | More congestion, 2 E.V. | 104 s | 11.86 % |
 | **E.V. count more** | 165 s | **−39.83 %** |
 
-Gains are largest when demand is uneven. Each emergency vehicle adds interruptions, and the very high E.V. case is slower than fixed timing, which is a known limitation. Full data: ![Observation Table](PPT%27s/table.png)
+Gains are largest when demand is uneven. Each emergency vehicle adds interruptions, and the very high E.V. case is slower than fixed timing, which is a known limitation. Full data: ![Observation Table](PPT%27s/table.jpg)
 
 ## ⚙️ Setup & Usage
 
